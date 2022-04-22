@@ -1,0 +1,5 @@
+.env
+response.json
+Pipfile.lock
+
+.idea/
