@@ -11,7 +11,7 @@ from requests.auth import HTTPBasicAuth
 
 PROJECT_DIRECTORY = dirname(realpath(__file__))
 ATTACHMENTS_DIRECTORY = join(PROJECT_DIRECTORY, "attachments")
-JSON_FILE = join(PROJECT_DIRECTORY, "response.json")
+JSON_FILE = join(PROJECT_DIRECTORY, "response.json2")
 ENV_FILE = join(PROJECT_DIRECTORY, ".env")
 USERNAME = ''
 PASSWORD = ''
@@ -23,6 +23,11 @@ if __name__ == "__main__":
 
     if not exists(JSON_FILE):
         URL = config["URL"] if len(config) > 0 else None
+
+        with requests.get(URL, auth=HTTPBasicAuth(USERNAME, PASSWORD)) as content:
+            total = int(content.json()["total"])
+            max_results = total + 1 if total > 100 else 100
+            URL = "&".join([URL, f"maxResults={max_results}"])
 
         with requests.get(URL, auth=HTTPBasicAuth(USERNAME, PASSWORD)) as content:
             with open(JSON_FILE, 'w') as outfile:
