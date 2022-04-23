@@ -1,26 +1,30 @@
 import json
 import requests
+import urllib3.exceptions
 
-from os.path import join, dirname, realpath, exists
-from requests.auth import HTTPBasicAuth
-from dotenv import dotenv_values
 from getpass import getpass
+from http import HTTPStatus
+from os import makedirs
+from os.path import join, dirname, realpath, exists
+from dotenv import dotenv_values
+from requests.auth import HTTPBasicAuth
 
 PROJECT_DIRECTORY = dirname(realpath(__file__))
+ATTACHMENTS_DIRECTORY = join(PROJECT_DIRECTORY, "attachments")
 JSON_FILE = join(PROJECT_DIRECTORY, "response.json")
 ENV_FILE = join(PROJECT_DIRECTORY, ".env")
+USERNAME = ''
+PASSWORD = ''
 
 if __name__ == "__main__":
-    if not exists(JSON_FILE):
-        config = dotenv_values(ENV_FILE)
-        URL = config["URL"] if len(config) > 0 else None
-        if URL:
-            raise ValueError
-        username = config["USERNAME"] if config["USERNAME"] else getpass(prompt='Enter your username: ')
-        password = config["PASSWORD"] if config["PASSWORD"] else getpass(prompt='Enter your password? ')
+    config = dotenv_values(ENV_FILE)
+    USERNAME = config["USERNAME"] if config["USERNAME"] else getpass(prompt='Enter your username: ')
+    PASSWORD = config["PASSWORD"] if config["PASSWORD"] else getpass(prompt='Enter your password? ')
 
-        with requests.get(URL, auth=HTTPBasicAuth(username, password)) as content:
-            print(content)
+    if not exists(JSON_FILE):
+        URL = config["URL"] if len(config) > 0 else None
+
+        with requests.get(URL, auth=HTTPBasicAuth(USERNAME, PASSWORD)) as content:
             with open(JSON_FILE, 'w') as outfile:
                 print(f"Writing data to {JSON_FILE}")
                 json.dump(content.json(), outfile)
@@ -47,6 +51,18 @@ if __name__ == "__main__":
                             "email": attachment["author"]["emailAddress"],
                             "display": attachment["author"]["displayName"]
                         }
-                    print(f"{item['key']} -> {item['url']}")
+                    ISSUE_DIRECTORY = join(ATTACHMENTS_DIRECTORY, item["key"])
+                    ATTACHMENT_FILE = join(ISSUE_DIRECTORY, attachment["filename"])
+
+                    if not exists(ISSUE_DIRECTORY):
+                        makedirs(ISSUE_DIRECTORY)
+
+                    try:
+                        r = requests.get(item['url'], auth=HTTPBasicAuth(USERNAME, PASSWORD), allow_redirects=True)
+                        if r.status_code == HTTPStatus.OK:
+                            print(f"Downloading {r.url} to -> {ATTACHMENT_FILE} [{r.status_code}]")
+                            open(ATTACHMENT_FILE, 'wb+').write(r.content)
+                    except urllib3.exceptions.HTTPError as e:
+                        print(e)
                     attachments += [item]
         print(f"Found: {len(attachments)} attachments")
