@@ -1,79 +1,57 @@
+import argparse
 import json
-import requests
-import urllib3.exceptions
+import logging
+import sys
 
-from getpass import getpass
-from http import HTTPStatus
-from os import makedirs
 from os.path import join, dirname, realpath, exists
-from dotenv import dotenv_values
-from requests.auth import HTTPBasicAuth
-from progress.bar import Bar
 
+
+from team_scrapper.app.version import TEAM_SCRAPPER_VERSION
+from team_scrapper.common import config as scrapper_config
+from team_scrapper.common.client import Client
 
 PROJECT_DIRECTORY = dirname(realpath(__file__))
 ATTACHMENTS_DIRECTORY = join(PROJECT_DIRECTORY, "attachments")
-JSON_FILE = join(PROJECT_DIRECTORY, "attachmentsq.json")
-ENV_FILE = join(PROJECT_DIRECTORY, ".env")
-USERNAME = ''
-PASSWORD = ''
+
+logging.basicConfig(stream=sys.stdout,
+                    format="%(levelname)s %(asctime)s - %(message)s",
+                    level=logging.INFO)
+
+logging.info(f"Team Scrapper Version: {TEAM_SCRAPPER_VERSION}")
 
 if __name__ == "__main__":
-    config = dotenv_values(ENV_FILE)
-    USERNAME = config["USERNAME"] if config["USERNAME"] else getpass(prompt='Enter your username: ')
-    PASSWORD = config["PASSWORD"] if config["PASSWORD"] else getpass(prompt='Enter your password? ')
+    parser = argparse.ArgumentParser(description="Parse JIRA JQL requests")
+    parser.add_argument('--query',
+                        type=str,
+                        default="issues",
+                        help="Print data to stdout or save to file")
+    parser.add_argument('--format',
+                        type=str,
+                        default="table",
+                        help="Specify out format in json, table or sheet (Excel spreadsheet")
 
-    if not exists(JSON_FILE):
-        URL = config["URL"] if len(config) > 0 else None
+    args = parser.parse_args()
+    config = scrapper_config.init()
+    query = args.query.casefold()
+    cache_file = join(config.base_dir, f"{query}.json")
 
-        with requests.get(URL, auth=HTTPBasicAuth(USERNAME, PASSWORD)) as content:
-            total = int(content.json()["total"])
-            max_results = total + 1 if total > 100 else 100
-            URL = "&".join([URL, f"maxResults={max_results}"])
+    if not exists(cache_file):
+        request = Client.create_cache(config=config, query=query, format=args.format)
 
-        with requests.get(URL, auth=HTTPBasicAuth(USERNAME, PASSWORD)) as content:
-            with open(JSON_FILE, 'w') as outfile:
-                print(f"Writing data to {JSON_FILE}")
-                json.dump(content.json(), outfile)
+        with open(cache_file, 'w') as outfile:
+            logging.info(f"Writing data to {cache_file}")
+            json.dumps(request, outfile)
 
-    attachments = []
-    with open(JSON_FILE, 'r') as content:
-        print("Reading JSON data")
+    with open(cache_file, 'r') as content:
+        logging.info(f"Reading JSON data: {cache_file}")
+
         data = json.load(content)
-        bar = Bar('Downloading', max=len(data["issues"]), suffix='%(percent)d%% [%(index)s / %(max)s]')
+        query = args.query.casefold()
+        output_format = args.format.casefold()
 
-        for issue in data["issues"]:
-            bar.next()
-            if issue["fields"]["attachment"]:
-                for attachment in issue["fields"]["attachment"]:
-                    item = {
-                        "file_id": issue["id"],
-                        "file_name": attachment["filename"],
-                        "mime_type": attachment["mimeType"],
-                        "url": attachment["content"],
-                        "created": attachment["created"],
-                        "key": issue["key"]
-                    }
-                    if "author" in attachment.keys():
-                        item["created_by"] = {
-                            "name": attachment["author"]["name"],
-                            "email": attachment["author"]["emailAddress"],
-                            "display": attachment["author"]["displayName"]
-                        }
-                    ISSUE_DIRECTORY = join(ATTACHMENTS_DIRECTORY, item["key"])
-                    ATTACHMENT_FILE = join(ISSUE_DIRECTORY, attachment["filename"])
-
-                    if not exists(ISSUE_DIRECTORY):
-                        makedirs(ISSUE_DIRECTORY)
-
-                    try:
-                        r = requests.get(item['url'], auth=HTTPBasicAuth(USERNAME, PASSWORD), allow_redirects=True)
-                        if r.status_code == HTTPStatus.OK:
-                            # print(f"Downloading {r.url} to -> {ATTACHMENT_FILE} [{r.status_code}]")
-                            open(ATTACHMENT_FILE, 'wb+').write(r.content)
-                    except urllib3.exceptions.HTTPError as e:
-                        print(e)
-                    attachments += [item]
-            bar.finish()
-
-        print(f"Found: {len(attachments)} attachments")
+        if query == "users":
+            users = Client.get_users(data)
+            Client.print_data(config, users, output_format)
+        elif query == "attachments":
+            attachments = Client.get_attachments(config, data)
+            Client.print_data(config, attachments, output_format)

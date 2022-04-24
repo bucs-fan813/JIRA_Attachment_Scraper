@@ -8,6 +8,7 @@ python-dotenv = "*"
 progress = "*"
 pandas = "*"
 xlsxwriter = "*"
+requests = "*"
 
 [dev-packages]
 
