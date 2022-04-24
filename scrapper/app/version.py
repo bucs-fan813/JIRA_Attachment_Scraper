@@ -5,9 +5,9 @@ If the file is not available, display a dev version.
 import json
 import os
 
-import team_scrapper
+import scrapper
 
-PACKAGE_DIRECTORY = team_scrapper.__path__[0]
+PACKAGE_DIRECTORY = scrapper.__path__[0]
 MAIN_DIRECTORY = os.path.dirname(PACKAGE_DIRECTORY)
 VERSION_FILEPATH = os.path.join(MAIN_DIRECTORY, "version.json")
 
@@ -26,4 +26,4 @@ def get_app_version():
         return version_obj.get("full", "dev")
 
 
-TEAM_SCRAPPER_VERSION = get_app_version()
+SCRAPPER_VERSION = get_app_version()

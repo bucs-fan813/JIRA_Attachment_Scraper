@@ -5,10 +5,9 @@ import sys
 
 from os.path import join, dirname, realpath, exists
 
-
-from team_scrapper.app.version import TEAM_SCRAPPER_VERSION
-from team_scrapper.common import config as scrapper_config
-from team_scrapper.common.client import Client
+from scrapper.app.version import SCRAPPER_VERSION
+from scrapper.common import config as scrapper_config
+from scrapper.common.client import Client
 
 PROJECT_DIRECTORY = dirname(realpath(__file__))
 ATTACHMENTS_DIRECTORY = join(PROJECT_DIRECTORY, "attachments")
@@ -17,7 +16,7 @@ logging.basicConfig(stream=sys.stdout,
                     format="%(levelname)s %(asctime)s - %(message)s",
                     level=logging.INFO)
 
-logging.info(f"Team Scrapper Version: {TEAM_SCRAPPER_VERSION}")
+logging.info(f"Team Scrapper Version: {SCRAPPER_VERSION}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parse JIRA JQL requests")

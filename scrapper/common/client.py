@@ -13,7 +13,7 @@ from progress.bar import Bar
 from os.path import join, exists
 from http import HTTPStatus
 
-from team_scrapper.common.config import ApiConfig
+from scrapper.common.config import ApiConfig
 
 
 class Client:
