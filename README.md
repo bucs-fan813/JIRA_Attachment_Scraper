@@ -25,6 +25,8 @@ install                        Run pipenv install
 `pip install pipenv`
 
 ### Configure dependencies for JIRA Scraper:
+Read .env.TEMPLATE
+
 Run `make install`
 
 Run `make users | issues | attachments`
