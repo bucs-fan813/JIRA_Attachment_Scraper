@@ -1,4 +1,4 @@
-# JIRA Scrapper
+# JIRA Scraper
 ```
 _________________
 | Make targets: |
