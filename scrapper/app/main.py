@@ -16,41 +16,37 @@ logging.basicConfig(stream=sys.stdout,
                     format="%(levelname)s %(asctime)s - %(message)s",
                     level=logging.INFO)
 
-logging.info(f"Team Scrapper Version: {SCRAPPER_VERSION}")
+logging.info(f"JIRA Scrapper Version: {SCRAPPER_VERSION}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parse JIRA JQL requests")
     parser.add_argument('--query',
                         type=str,
                         default="issues",
-                        help="Print data to stdout or save to file")
-    parser.add_argument('--format',
+                        help="Query users, issues or attachments")
+    parser.add_argument('--output_format',
                         type=str,
-                        default="table",
+                        default="sheet",
                         help="Specify out format in json, table or sheet (Excel spreadsheet")
 
-    args = parser.parse_args()
     config = scrapper_config.init()
+    args = parser.parse_args()
     query = args.query.casefold()
+    output_format = args.output_format.casefold()
     cache_file = join(config.base_dir, f"{query}.json")
 
     if not exists(cache_file):
-        request = Client.create_cache(config=config, query=query, format=args.format)
-
-        with open(cache_file, 'w') as outfile:
-            logging.info(f"Writing data to {cache_file}")
-            json.dumps(request, outfile)
+        print(f"Creating cache for: {cache_file}")
+        request = Client(config=config).create_cache(config=config, query=query)
 
     with open(cache_file, 'r') as content:
         logging.info(f"Reading JSON data: {cache_file}")
-
         data = json.load(content)
-        query = args.query.casefold()
-        output_format = args.format.casefold()
 
         if query == "users":
-            users = Client.get_users(data)
-            Client.print_data(config, users, output_format)
+            results = Client.get_users(config, data)
+        elif query == "issues":
+            results = Client.get_issues(config, data)
         elif query == "attachments":
-            attachments = Client.get_attachments(config, data)
-            Client.print_data(config, attachments, output_format)
+            results = Client.get_attachments(config, data)
+        Client.print_data(config=config, query=query, data=results, output_format=output_format)

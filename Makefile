@@ -10,16 +10,18 @@ help: ## Show help info
 	@cat Makefile | grep -E '^[a-zA-Z\/_-]+:.*?## .*$$' | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 	@echo
 
-users issues attachments: format=$(if $(f),$(f),table)
+users issues: format=$(if $(f),$(f),table)
 
 users: ## Get users from JIRA
-	pipenv run python -m main --query users --format=${format}
+	pipenv run python -m scrapper.app.main --query users --output_format=${format}
+# 	pipenv run python -m scrapper.app.main --query users
 
 issues: ## Get issues from JIRA
-	pipenv run python -m main --query issues --format=${format}
+	pipenv run python -m scrapper.app.main --query issues --output_format=${format}
+# 	pipenv run python -m scrapper.app.main --query issues
 
 attachments: ## Get users from JIRA
-	pipenv run python -m main --query attachments --format=${format}
+	pipenv run python -m scrapper.app.main --query attachments
 
 install: ## Run pipenv install
 	pipenv install

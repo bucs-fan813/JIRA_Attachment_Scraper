@@ -23,7 +23,6 @@ class ApiConfig:
         self.env_file = join(BASE_DIR, ".env")
         self.output_directory = join(self.base_dir, "output")
         self.max_results = 1000
-
     @property
     def get_max_results(self):
         """The default number of results for JQL queries"""
@@ -35,8 +34,6 @@ API: ApiConfig = None
 
 def init(config_path=None):
     """Initialize the global configuration variables by parsing the .env"""
-
-    # pylint: disable=global-statement
     global API
 
     if not config_path:
